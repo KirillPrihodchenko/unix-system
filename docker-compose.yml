@@ -1,0 +1,55 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: user
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      -  ./db/migration/V1.1__exist.sql:/docker-entrypoint-initdb.d/V1.1__exist.sql
+    networks:
+      - app_network
+
+  spring:
+    build: ./
+    container_name: 'unix-app'
+    ports:
+      - "9090:9090"
+    environment:
+      - SERVER_PORT=9090
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/user
+    depends_on:
+      - postgres
+    volumes:
+      - app_data:/app/data
+    networks:
+      - app_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    depends_on:
+      - postgres
+    restart: always
+    ports:
+      - "9080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  app_data:
+  pgdata:
+  pgadmin-data:
